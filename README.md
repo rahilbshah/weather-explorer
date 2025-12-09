@@ -9,6 +9,8 @@ Full-stack weather data explorer application for inRisk interview case study.
 - Visualize temperature data with interactive charts
 - Responsive React frontend with Tailwind CSS
 - FastAPI backend with AWS S3 storage
+- Cached Open-Meteo integration using the official Python client
+- Enhanced UX with toast notifications, loading spinner, and paginated data table
 
 ## Tech Stack
 
@@ -18,6 +20,8 @@ Full-stack weather data explorer application for inRisk interview case study.
 - Python 3.11
 - AWS S3 (boto3)
 - Pydantic for validation
+- Open-Meteo Python client (`openmeteo-requests`) with `requests-cache` and `retry-requests`
+- NumPy and pandas for time series handling
 
 **Frontend:**
 
@@ -85,9 +89,9 @@ weather-explorer/
 docker-compose up --build
 ```
 
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:8080
-- API Docs: http://localhost:8080/docs
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000
+- API Docs: http://localhost:8000/docs
 
 ### Run Locally (Development)
 
@@ -121,6 +125,8 @@ npm run dev
 - `AWS_REGION`: AWS region for S3
 - `S3_BUCKET`: S3 bucket name
 - `ALLOWED_ORIGINS`: CORS allowed origins
+- `AWS_ACCESS_KEY_ID`: AWS access key ID for local/dev (or use AWS profile instead)
+- `AWS_SECRET_ACCESS_KEY`: AWS secret key for local/dev (or use AWS profile instead)
 
 **Frontend (.env):**
 
