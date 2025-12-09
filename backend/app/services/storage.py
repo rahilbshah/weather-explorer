@@ -16,7 +16,7 @@ class S3StorageService:
         self.s3_client = boto3.client(
             "s3", region_name=os.getenv("AWS_REGION", "us-east-1")
         )
-        self.bucket_name = os.getenv("S3_BUCKET", "weather-explorer-data")
+        self.bucket_name = os.getenv("S3_BUCKET", "inrisk-weather-explorer-data")
         logger.info(f"Initialized S3 service with bucket: {self.bucket_name}")
 
     def generate_filename(

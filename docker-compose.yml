@@ -1,26 +1,35 @@
-version: "3.9"
-
 services:
   backend:
     build: ./backend
     ports:
-      - "8080:8080"
+      - "8000:8000"
     environment:
-      - AWS_REGION=${AWS_REGION:-us-east-1}
       - S3_BUCKET=${S3_BUCKET:-weather-explorer-data}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION}
     volumes:
       - ./backend:/app
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: ${NODE_ENV:-development}
+      args:
+        - NODE_ENV=${NODE_ENV}
     ports:
-      - "5173:5173"
+      - "3000:3000"
     environment:
-      - VITE_API_URL=${API_URL}
+      - VITE_API_URL=${VITE_API_URL}
+      - NODE_ENV=${NODE_ENV}
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    stdin_open: true
-    tty: true
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://127.0.0.1:3000"]
+      interval: 3s
+      timeout: 10s
+      retries: 10

@@ -4,49 +4,55 @@ import FileList from "./components/FileList";
 import FileViewer from "./components/FileViewer";
 import Chart from "./components/Chart";
 import Table from "./components/Table";
+import { ToastProvider, useToast } from "./components/Toast";
 import axios from "axios";
 
-const App = () => {
+const AppContent = () => {
   const [selectedFile, setSelectedFile] = useState(null);
-  const [fileContent, setFileContent] = useState(null);
   const [chartData, setChartData] = useState([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const toast = useToast();
 
-  // Fetch file content when a file is selected
+  // Transform weather data for chart/table display
   useEffect(() => {
-    if (!selectedFile) return;
-    const fetchContent = async () => {
+    if (!selectedFile) {
+      setChartData([]);
+      return;
+    }
+
+    const fetchAndTransform = async () => {
       try {
         const resp = await axios.get(
           `${import.meta.env.VITE_API_URL}/weather-file-content/${selectedFile}`
         );
-        setFileContent(resp.data);
-        // Transform to chart data if temperature fields exist
-        if (Array.isArray(resp.data)) {
-          // assume each item has date, temperature_2m_max, temperature_2m_min
-          const chart = resp.data.map((item) => ({
+        const data = resp.data;
+
+        // Open-Meteo returns daily data in nested structure
+        if (data.daily && data.daily.time) {
+          const transformed = data.daily.time.map((date, idx) => ({
+            date,
+            temp_max: data.daily.temperature_2m_max?.[idx],
+            temp_min: data.daily.temperature_2m_min?.[idx],
+            apparent_max: data.daily.apparent_temperature_max?.[idx],
+            apparent_min: data.daily.apparent_temperature_min?.[idx],
+          }));
+          setChartData(transformed);
+        } else if (Array.isArray(data)) {
+          const chart = data.map((item) => ({
             date: item.date || item.time || "",
             temp_max: item.temperature_2m_max,
             temp_min: item.temperature_2m_min,
           }));
           setChartData(chart);
-        } else if (resp.data && typeof resp.data === "object") {
-          // single day data
-          const { date, temperature_2m_max, temperature_2m_min } = resp.data;
-          setChartData([
-            {
-              date,
-              temp_max: temperature_2m_max,
-              temp_min: temperature_2m_min,
-            },
-          ]);
         }
       } catch (err) {
         console.error(err);
-        setFileContent(null);
+        toast.error("Failed to load file data");
         setChartData([]);
       }
     };
-    fetchContent();
+
+    fetchAndTransform();
   }, [selectedFile]);
 
   const handleStoreWeather = async (payload) => {
@@ -55,27 +61,59 @@ const App = () => {
         `${import.meta.env.VITE_API_URL}/store-weather-data`,
         payload
       );
-      // Optionally trigger a refresh of file list (could be done via context or event)
+      toast.success("Weather data stored successfully!");
+      setRefreshTrigger((prev) => prev + 1);
     } catch (err) {
       console.error("Error storing weather data:", err);
+      toast.error(err.response?.data?.detail || "Failed to store weather data");
+      throw err;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <h1 className="text-2xl font-bold mb-4 text-center">Weather Explorer</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-4">
+    <div className="min-h-screen p-4 md:p-8">
+      {/* Header */}
+      <header className="text-center mb-8">
+        <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg mb-2">
+          🌤️ Weather Explorer
+        </h1>
+        <p className="text-white/80 text-lg">
+          Fetch, store, and visualize historical weather data
+        </p>
+      </header>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Column */}
+        <div className="space-y-6">
           <InputPanel onSubmit={handleStoreWeather} />
-          <FileList onSelect={setSelectedFile} />
+          <FileList
+            onSelect={setSelectedFile}
+            refreshTrigger={refreshTrigger}
+          />
         </div>
-        <div className="space-y-4">
+
+        {/* Right Column */}
+        <div className="space-y-6">
           <FileViewer fileName={selectedFile} />
           <Chart data={chartData} />
           <Table data={chartData} />
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="text-center mt-12 text-white/60 text-sm">
+        <p>Built for inRisk Interview Case Study • Powered by Open-Meteo API</p>
+      </footer>
     </div>
+  );
+};
+
+const App = () => {
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
   );
 };
 
